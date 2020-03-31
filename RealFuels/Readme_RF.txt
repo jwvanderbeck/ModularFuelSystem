@@ -1,6 +1,6 @@
 **** RealFuels ****
 by NathanKell
-Contributors: Chestburster, Starwaster, taniwha, swamp_ig, ialdabaoth (obviously, but back again!)
+Contributors: Chestburster, Starwaster, taniwha, swamp_ig, ialdabaoth (obviously, but back again!), blowfish
 ialdabaoth (who is awesome) created Modular Fuels, and this is a fork of the RealFuels branch.
 
 License remains CC-BY-SA as modified by ialdabaoth.
@@ -49,6 +49,179 @@ AN OVERVIEW OF FUEL TYPES AND TANK TYPES AND TECH LEVELS/ENGINE TYPES AND UPGRAD
 
 ==========
 Changelog:
+v12.8.1
+* Address VAB lag by limiting procedural part rerendering to when actual volume changes occur.
+* Further refinement for procedural tank handling.
+* Fixed issue with tank PAW not being marked dirty by tank GUI window when updating under some conditions.
+* unmanaged resource bug fixed.
+
+v12.8.0
+* Make MLI cost, mass and max layers configurable (in part config file)
+* Changed Show UI and Hide UI to Show Tank UI and Hide Tank UI (PAW text)
+* Unmanaged resources. ModuleFuelTanks can have UNMANAGED_RESOURCE node to declare a resource name, amount and maxAmount (same format as RESOURCE). Even if all tanks are removed, this unmanaged resource will always be present and all tank resource amounts are in addition to the unmanaged quantity.
+* tank type initializes with Default if no type is specified. (fixes edge case physics breaking bug)
+* GUI performance improvements by @yump
+* Fixed TANK_DEFINITION fallback system
+* Fixes and improvements for engine GUI and engine GUI symmetry handling
+* Fixed issue where selecting different MEC engine configurations would cause a tank PAW to fill with duplicate config buttons. by @todi
+* added new TANK_DEFINITION fields by @siimav
+* actually find a fallback MEC config instead of lying and saying we couldn't find one when we didn't look for one!
+* boiloff data available in PAW without spamming the log with debug data.
+* Stock Real Fuels now has MLI Tech Upgrades. Max layers will increase as you progress through fuel / construction nodes in career.
+* Certain procedural parts will correctly calculate tank surface area in editor. (by correct we mean it should match up with what you see in flight mode so costs and mass will be consistent). Does this for SSTU, Procedural Parts, B9 Procedural Wings and ROTanks
+
+v12.7.4
+* Compiled for KSP 1.6.1
+
+v12.7.3.1
+* This is a backport to KSP 1.3.1 - it contains all changes present in RF 12.7.3
+
+v12.7.3
+* Compiled for KSP 1.5.1
+
+v12.7.2
+* Analytic thermal improvements:
+* Assign value to part.analyticInternalInsulationFactor approximating what actual heat transfer would be. (i.e. temperature interpolation at a rate equal to what it should be out of analytic mode)
+* In analytic mode, adjust part.temperature immediately since the lerp rate would retard temperature adjustment.
+* Compiled for KSP 1.4.5
+
+v12.7.1
+
+* Fix exceptions when initializing ModuleEnginesRF
+* Fix mass display in the part action window not accounting for MLI
+* Remove a bit of log spam
+
+v12.7.0
+
+* Recompile for KSP 1.4.3
+
+v12.6.0
+
+* Add multi-layer insulation and dewar (vacuum) bottles
+  * MLI is configured by `numberOfMLILayers` on the `TANK_DEFINITION`
+    * Each layer adds cost and mass
+    * Cryo and balloon cryo tank types now come with 10 layers of MLI
+  * Dewar / vacuum bottles defind by `isDewar = true` on the `TANK`
+    * Cryogenic fuels in the Serivce Module tank type use this
+    * Does not work with other types of insulation
+
+v12.5.0
+
+* Fix vesion checker which reported KSP 1.3.1 as incompatible
+* Implement new entry cost system for RP-0/1
+* Disable thrust limiter when no throttling
+* Implement min and max utilization support on tanks
+
+v12.4.1
+
+* Don't double heat flux (workaround which is no longer necessary in KSP 1.3.1)
+* Actually update .version file
+
+v12.4.0
+
+* Recompile for KSP 1.3.1
+* Fix MM configs with more than one pass in kethane tanks config
+
+v12.3.1
+
+* Actually fix the bug with tanks not getting their contents correctly (not fixed in v12.3.0)
+
+v12.3.0
+
+* For KSP 1.3 again
+* Fix bug with tanks not loading their contents correctly
+* Add .version file
+
+v12.2.4
+
+* Note: this version is for KSP 1.2.2
+* Fix bug with tanks not loading their contents correctly
+* Add .version file
+
+v12.2.3
+
+* Recompile for KSP 1.3
+
+v12.2.2
+
+* Fix bug in how tank surface area is calculated
+* Fix tank copying when cloning via symmetry
+* Don't delete tanks during loading or part placement
+* Fix patches marked :FINAL
+* Disable part heating due to engine on RF engines, since engine overheat is handled separately and engine heat shouldn't spill to other parts
+
+v12.2.1
+
+* Fix tank's initial temperature not being set correctly on vessel spawn and when launch clamps are attached
+* Remove some logspam for boiloff in analytic mode (high timewarp)
+* Make sure tank's lowest temperature is calculated correctly and that part temp is only set if cryogenic resources are present
+* Fix negative temperature caused by conduction compensation in analytic mode (high timewarp)
+* Fix sign error on flux in analytic mode (high timewarp)
+
+v12.2.0
+
+* Fix for engines not properly loading pressure fed setting from
+ModuleEngineConfig
+* Fix for cryogenic tanks exploding during analytic mode after long
+periods unloaded
+* Avoid possible NRE on fuel pumps when launching with Extraplanetary Launchpads
+* Fuel pumps must now be present and active in order to avoid boiloff during prelaunch (previously being on the launch pad was enough)
+* Fuel pumps are now enabled by default and enabled setting respects symmetry in the editor
+* Streamline fuel pump enable/disable UI - now a simple button rather than display + button
+
+v12.1.0
+* Reinstate analytic boiloff with improvements
+* Set specific heat to zero for cryogenic resources (assumption that part and resource temperature are the same doesn't make sense here)
+* Disable ferociousBoilOff since changing cryogenic resource specific heat makes it unnecessary
+* Add the ability for ignitions to be allowed only when attached to launch clamps
+* Make sure cost only gets multiplied by scale once
+* Fix issue where engines would explode after being decoupled (due to KSP reporting the wrong ambient temperature for a couple of frames)
+* Fix resource mix buttons not showing up when a ship is first loaded
+* Fix fuel tank related NRE in flight
+* Make burn time formatting consistent
+* Fix vacuum thrust displaying the same as sea level thrust
+
+v12.0.1
+* Fix TestFlight integration
+* Fix engine configs in career that aren't unlocked by upgrade nodes
+* Fix harmless but noisy error message when using thrust curves
+
+v12.0.0
+* Update to KSP 1.2.2
+* Update to SolverEngines v3.0
+
+v11.3.1
+* Fix an issue with verniers and TestFlight.
+
+v11.3.0
+* Tweak to boiloff and to how conduction is compensated.
+* Slight optimization in the ullage VesselModule.
+* Attempting to add back tweakscale support for ModuleEngineConfigs.
+* Update to KSP 1.1.3.
+
+v11.2.0
+* Correct a bug in tank basemass calculation such that parts sometimes mass less than they should in flight. Thanks soundnfury for finding this!
+* New UI skin thanks to Agathorn!
+* Fix an issue with scaling down tanks during utilization changes.
+* Round displayed available volume when below 1mL (no more -322 femtoliters).
+
+v11.1.1
+* Fix an NRE that was messing up VAB staging.
+
+v11.1
+* Enable conduction compensation (now that FAR no longer lowers conduction).
+* Set resources to volume=1 for compatibility with other mods.
+* Don't set wrong massDelta when basemass is negative (fixes the B9 proc wings mass issue amongst others).
+* Fix an NRE in database reloading at main menu.
+* Fix issue with configs getting lost (affected LR91 verniers).
+
+v11.0
+* Port to KSP 1.1, thanks to taniwha, Agathorn, Starwaster!
+* Make sure clamps with the pump do pump EC even when the EC is not in a ModuleFuelTanks tank.
+* Change boiloff to use wetted tank area and other boiloff improvements.
+* Temprorarily remove TweakScale support until we can get it non-buggy.
+* Infinite Propellants cheat now allows reignition even with no ignitions remaining / no ignitor resources remaining.
+
 v10.8.5
 * Don't try to stop other-config FX every frame, do more null checking (should speed things up a abit and avoid NREs).
 * Allow setting (in MFSSettings) the multiplier to lowest boiling point to use for radiator calls.
@@ -96,7 +269,7 @@ thermal mass - resource mass.
 
 v10.7
 * Revamped boiloff code for cryogenic propellants to be compatible with KSP 1.0.x thermodynamics (tanks will be properly cooled by evaporation of boiled off resources)
-* For now, only LqdOxygen, LqdHydrogen, LqdMethane and LqdAmmonia use the new system. (others may be added if needed) 
+* For now, only LqdOxygen, LqdHydrogen, LqdMethane and LqdAmmonia use the new system. (others may be added if needed)
 * Insulation can be either for the whole tank part or per each internal tank.
 * Fix issue where TL was not being correctly reset on config change.
 
@@ -504,7 +677,7 @@ v3.2 = \/
 *Increased precision for fuel densities; fixed LH2's density (was 0.071g/cc; should be 0.07085g/cc)
 *Added tank support for Space Shuttle Engines mod (thanks, Malsheck!)
 *Added scrolling to tank configuration.
-*Upgraded to Module Manager v1.5 
+*Upgraded to Module Manager v1.5
 
 v3.1 = \/
 *Changed zip's path structure.

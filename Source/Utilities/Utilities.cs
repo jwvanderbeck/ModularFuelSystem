@@ -29,12 +29,12 @@ namespace RealFuels
         {
             if (fc == null)
             {
-                Debug.Log("*PC* ERROR: FC is null!");
+                Debug.LogError("*PC* ERROR: FC is null!");
                 return;
             }
             if (fc.Curve == null)
             {
-                Debug.Log("*PC* ERROR: FC's curve is null!");
+                Debug.LogError("*PC* ERROR: FC's curve is null!");
                 return;
             }
             int len = fc.Curve.keys.Length;
@@ -72,7 +72,7 @@ namespace RealFuels
                 printStr += PrintNode(node, "");
             return printStr;
         }
-        
+
         public static string GetPartName(Part part)
         {
             if (part.partInfo != null)
@@ -100,105 +100,74 @@ namespace RealFuels
             return true;
         }
 
+        public static string FormatFlux(double flux, bool scale = false)
+        {
+            string unit = "W";
+            if (scale)
+            {
+                flux *= TimeWarp.fixedDeltaTime;
+                unit = "J";
+            }
+            return KSPUtil.PrintSI(flux * 1e3, unit, 4);
+        }
+
+        public static string FormatThrust(double thrust)
+        {
+            if (thrust < 1e-6)
+            {
+                return $"{thrust * 1e9:0.#} μN";
+            }
+            if (thrust < 1e-3)
+            {
+                return $"{thrust * 1e6:0.#} mN";
+            }
+            else if (thrust < 1.0)
+            {
+                return $"{thrust * 1e3:0.#} N";
+            }
+            else
+            {
+                return $"{thrust:0.#} kN";
+            }
+        }
+
         #region Finding resources
         public static List<PartResource> FindResources(Part part, Propellant p)
         {
             List<PartResource> list = new List<PartResource>();
             ResourceFlowMode flow = p.GetFlowMode();
-            if (flow == ResourceFlowMode.STACK_PRIORITY_SEARCH)
+            if (flow == ResourceFlowMode.STACK_PRIORITY_SEARCH || flow == ResourceFlowMode.STAGE_PRIORITY_FLOW_BALANCE || flow == ResourceFlowMode.STAGE_STACK_FLOW || flow == ResourceFlowMode.STAGE_STACK_FLOW_BALANCE)
             {
-                HashSet<Part> visited = new HashSet<Part>();
-                FindResources_StackPri(part, visited, list, p.id);
+                foreach (Part n in part.crossfeedPartSet.GetParts())
+                {
+                    n.Resources.GetAll(list, p.id);
+                }
             }
             else
             {
-                List<Part> parts;
+                List<Part> parts = null;
                 if (flow != ResourceFlowMode.NO_FLOW)
                 {
                     if (part.vessel != null)
                         parts = part.vessel.parts;
                     else if (EditorLogic.fetch != null && EditorLogic.fetch.ship != null)
                         parts = EditorLogic.fetch.ship.parts;
-                    else
-                    {
-                        parts = new List<Part>();
-                        parts.Add(part);
-                    }
+                }
+
+                if (parts == null)
+                {
+                    part.Resources.GetAll(list, p.id);
                 }
                 else
                 {
-                    parts = new List<Part>();
-                    parts.Add(part);
-                }
-
-                for (int i = parts.Count - 1; i >= 0; --i)
-                {
-                    Part foundPart = parts[i];
-                    List<PartResource> resources = foundPart.Resources.GetAll(p.id);
-                    for (int j = resources.Count - 1; j >= 0; --j)
-                        list.Add(resources[j]);
+                    for (int i = parts.Count - 1; i >= 0; --i)
+                    {
+                        Part foundPart = parts[i];
+                        foundPart.Resources.GetAll(list, p.id);
+                    }
                 }
             }
             return list;
-        }
-        public static void FindResources_StackPri(Part part, HashSet<Part> visited, List<PartResource> resources, int resourceID)
-        {
-            // will never be called if we visited this part
-            visited.Add(part);
-
-            // check local first
-            FindResources_Stack(part, visited, resources, resourceID);
-
-            // Check self, else check parent.
-            // weird logic, but this is what KSP does...
-            PartResource resource = part.Resources.Get(resourceID);
-            if (resource != null)
-            {
-                if(!resources.Contains(resource))
-                    resources.Add(resource);
-            }
-            else
-            {
-                if (part.fuelCrossFeed && part.parent != null)
-                {
-                    AttachNode node = part.findAttachNodeByPart(part.parent);
-                    if (node != null)
-                        if (part.NoCrossFeedNodeKey == "" || !node.id.Contains(part.NoCrossFeedNodeKey))
-                            if(!visited.Contains(part.parent))
-                                FindResources_StackPri(part.parent, visited, resources, resourceID);
-                }
-            }
-        }
-        public static void FindResources_Stack(Part part, HashSet<Part> visited, List<PartResource> sources, int resourceID)
-        {
-            // will never be called if visited contains part.
-
-            // use target list if it has targets
-            for (int i = part.fuelLookupTargets.Count - 1; i >= 0; --i)
-            {
-                Part target = part.fuelLookupTargets[i];
-                if (!visited.Contains(target) && (target == part.parent ? part.isAttached : target.isAttached))
-                    FindResources_StackPri(part.fuelLookupTargets[i], visited, sources, resourceID);
-            }
-
-            // if we don't crossfeed, stop here.
-            if (!part.fuelCrossFeed)
-                return;
-
-            // check any attached parts where we have crossfeed with them.
-            AttachNode node;
-            for (int j = part.attachNodes.Count - 1; j >= 0; --j)
-            {
-                node = part.attachNodes[j];
-                if (part.NoCrossFeedNodeKey != "" && node.id.Contains(part.NoCrossFeedNodeKey))
-                    continue;
-                if (!node.ResourceXFeed || node.attachedPart == null)
-                    continue;
-                if(visited.Contains(node.attachedPart))
-                    continue;
-
-                FindResources_StackPri(node.attachedPart, visited, sources, resourceID);
-            }
         }
         #endregion
     }

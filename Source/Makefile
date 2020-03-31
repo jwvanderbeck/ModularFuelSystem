@@ -3,7 +3,6 @@ MANAGED		:= ${KSPDIR}/KSP_Data/Managed
 GAMEDATA	:= ${KSPDIR}/GameData
 MODGAMEDATA	:= ${GAMEDATA}/ModularFuelTanks
 PLUGINDIR	:= ${MODGAMEDATA}/Plugins
-APIEXTDATA	:= ${PLUGINDIR}
 TSGAMEDATA	:= ${GAMEDATA}/TweakScale
 TSPLUGIN	:= ${TSGAMEDATA}/Plugins
 TSINTERACT	:= ${TSGAMEDATA}/TweakScaleInteraction
@@ -23,6 +22,7 @@ MFT_FILES := \
     Tanks/TankDefinition.cs			\
     Tanks/TankDefinitionList.cs		\
     Tanks/TankWindow.cs				\
+	Utilities/Styles.cs				\
     Pumps/RefuelingPump.cs			\
 	EditorToolbar.cs				\
 	$e
@@ -32,7 +32,7 @@ MFT_TS_FILES := \
 	$e
 
 RESGEN2	:= resgen2
-GMCS	:= mcs
+GMCS	:= csc
 GIT		:= git
 TAR		:= tar
 ZIP		:= zip
@@ -41,7 +41,7 @@ all: version ${TARGETS} ${TSTARGETS}
 
 .PHONY: version
 version:
-	@./tools/git-version.sh
+	@./tools/git-version-mft.sh
 
 info:
 	@echo "Modular Fuel Tanks Build Information"
@@ -55,16 +55,18 @@ info:
 
 bin/modularFuelTanks.dll: ${MFT_FILES}
 	@mkdir -p bin
-	${GMCS} -t:library -lib:${APIEXTDATA},${MANAGED} \
-		-r:Assembly-CSharp,Assembly-CSharp-firstpass \
-		-r:UnityEngine,UnityEngine.UI \
-		-r:KSPUtil \
-		-out:$@ $^
+	${GMCS} /highentropyva- /noconfig /nostdlib+ /t:library \
+		/r:/usr/lib/mono/4.5-api/mscorlib.dll \
+		/r:/usr/lib/mono/4.5-api/System.Core.dll \
+		/lib:${MANAGED} \
+		/r:Assembly-CSharp.dll,Assembly-CSharp-firstpass.dll \
+		/r:UnityEngine.dll,UnityEngine.UI.dll,UnityEngine.CoreModule.dll,UnityEngine.IMGUIModule.dll,UnityEngine.TextRenderingModule.dll,UnityEngine.InputLegacyModule.dll \
+		/out:$@ $^
 
 bin/TweakScale_ModularFuelTanks.dll: ${MFT_TS_FILES} bin/modularFuelTanks.dll
 	@mkdir -p bin
 	${GMCS} -t:library -lib:${TSPLUGIN},${MANAGED} \
-		-r:Assembly-CSharp,Assembly-CSharp-firstpass,UnityEngine \
+		-r:Assembly-CSharp.dll,Assembly-CSharp-firstpass.dll,UnityEngine.dll \
 		-r:Scale_Redist.dll \
 		-r:bin/modularFuelTanks.dll \
 		-out:$@ ${MFT_TS_FILES}
@@ -75,7 +77,7 @@ clean:
 install: all
 	mkdir -p ${PLUGINDIR}
 	cp ${TARGETS} ${PLUGINDIR}
-	mkdir -p ${TSINTERACT}
-	cp ${TSTARGETS} ${PLUGINDIR}
+	#mkdir -p ${TSINTERACT}
+	#cp ${TSTARGETS} ${PLUGINDIR}
 
 .PHONY: all clean info install

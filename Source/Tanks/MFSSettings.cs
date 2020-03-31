@@ -16,8 +16,6 @@ namespace RealFuels
         public static bool partUtilizationTweakable = false;
         public static string unitLabel = "u";
         public static bool basemassUseTotalVolume = false;
-        public static bool ferociousBoilOff = true;
-        public static bool globalConductionCompensation = false;
         public static double radiatorMinTempMult = 0.99d;
 
         public static HashSet<string> ignoreFuelsForFill;
@@ -25,6 +23,7 @@ namespace RealFuels
 
 		public static Dictionary<string, HashSet<string>> managedResources;
         public static Dictionary<string, double> resourceVsps;
+        public static Dictionary<string, double> resourceConductivities;
 
         private static Dictionary<string, ConfigNode[]> overrides;
 
@@ -92,8 +91,9 @@ namespace RealFuels
 			managedResources = new Dictionary<string,HashSet<string>> ();
             overrides = new Dictionary<string, ConfigNode[]>();
 
-            // fill vsps
+            // fill vsps & conductivities
             resourceVsps = new Dictionary<string, double>();
+            resourceConductivities = new Dictionary<string, double>();
             foreach (ConfigNode n in GameDatabase.Instance.GetConfigNodes("RESOURCE_DEFINITION"))
             {
                 if (n.HasValue("vsp"))
@@ -102,7 +102,14 @@ namespace RealFuels
                     if (double.TryParse(n.GetValue("vsp"), out dtmp))
                         resourceVsps[n.GetValue("name")] = dtmp;
                 }
+                if (n.HasValue("conductivity"))
+                {
+                    double dtmp;
+                    if (double.TryParse(n.GetValue("conductivity"), out dtmp))
+                        resourceConductivities[n.GetValue("name")] = dtmp;
+                }
             }
+
 
             ConfigNode node = GameDatabase.Instance.GetConfigNodes ("MFSSETTINGS").LastOrDefault ();
             Debug.Log ("[MFS] Loading global settings");
@@ -132,14 +139,6 @@ namespace RealFuels
 				}
                 if (bool.TryParse(node.GetValue("basemassUseTotalVolume"), out tb)) {
                     basemassUseTotalVolume = tb;
-                }
-                if (bool.TryParse(node.GetValue("ferociousBoilOff"), out tb))
-                {
-                    ferociousBoilOff = tb;
-                }
-                if (bool.TryParse(node.GetValue("globalConductionCompensation"), out tb))
-                {
-                    globalConductionCompensation = tb;
                 }
                 if (node.HasValue("radiatorMinTempMult"))
                     if (double.TryParse(node.GetValue("radiatorMinTempMult"), out td))

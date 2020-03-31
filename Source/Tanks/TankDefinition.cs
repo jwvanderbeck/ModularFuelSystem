@@ -23,10 +23,23 @@ namespace RealFuels.Tanks
         [Persistent]
         public bool highlyPressurized = false;
 
+        // TODO Replace with new MLI system and then deprecate
         [Persistent]
         public string outerInsulationFactor = "1.0";
 
-		public Tanks.FuelTankList tankList = new Tanks.FuelTankList ();
+        [Persistent]
+        public int numberOfMLILayers = 0;
+
+        [Persistent]
+        public int maxMLILayers = -1;
+
+        [Persistent]
+        public float minUtilization = 0;
+
+        [Persistent]
+        public float maxUtilization = 0;
+
+        public Tanks.FuelTankList tankList = new Tanks.FuelTankList ();
 
 
 		public TankDefinition () { }

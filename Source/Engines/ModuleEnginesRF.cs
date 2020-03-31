@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-
 using UnityEngine;
 using KSP;
 using SolverEngines;
@@ -28,14 +27,6 @@ namespace RealFuels
         public double varyThrust = 1d;
 
         [KSPField]
-        public float throttleResponseRate = -1f;
-        [KSPField]
-        public float throttleIgniteLevelMult = 1f;
-        [KSPField]
-        public float throttleStartupMult = 1f;
-        [KSPField]
-        public float throttleStartedMult = 1f;
-        [KSPField]
         public float throttlePressureFedStartupMult = 5f;
 
         [KSPField]
@@ -44,7 +35,7 @@ namespace RealFuels
         [KSPField]
         public float throttleClamp = 0.005f;
 
-        
+
 
         #region Thrust Curve
         //[KSPField]
@@ -54,7 +45,7 @@ namespace RealFuels
         //[KSPField]
         //public FloatCurve thrustCurve;
         [KSPField]
-        public string curveResource = "";
+        public string curveResource = string.Empty;
 
         protected int curveProp = -1;
 
@@ -115,9 +106,7 @@ namespace RealFuels
                 atmCurve = null;
             if(!useVelCurve)
                 velCurve = null;
-            if (!useThrustCurve)
-                thrustCurve = null;
-            
+
             // FIXME quick temp hax
             if (useAtmCurve)
             {
@@ -156,9 +145,9 @@ namespace RealFuels
                 flowMultCapSharpness,
                 thrustVariation,
                 (float)part.name.GetHashCode());
-            
+
             rfSolver.SetScale(scale);
-            
+
             engineSolver = rfSolver;
         }
         public override void OnAwake()
@@ -171,12 +160,10 @@ namespace RealFuels
         }
         public override void OnLoad(ConfigNode node)
         {
-            if (thrustCurve == null)
-                thrustCurve = new FloatCurve();
-
             base.OnLoad(node);
+
             // Manually reload ignitions if not in editor
-            if(!HighLogic.LoadedSceneIsEditor)
+            if (!HighLogic.LoadedSceneIsEditor)
                 node.TryGetValue("ignited", ref ignited);
             int pCount = propellants.Count;
             // thrust curve
@@ -185,17 +172,17 @@ namespace RealFuels
             {
                 if (node.GetValue("curveResource") != curveResource)
                 {
-                    Debug.Log("*RFE* ERROR: curveResource doesn't match node's!");
+                    Debug.LogError("*RFE* ERROR: curveResource doesn't match node's!");
                     curveResource = node.GetValue("curveResource");
                 }
                 if (thrustCurve == null)
                 {
-                    Debug.Log("*RFE* ERROR: have curve node but thrustCurve is null!");
+                    Debug.LogError("*RFE* ERROR: have curve node but thrustCurve is null!");
                     thrustCurve = new FloatCurve();
                     thrustCurve.Load(node.GetNode("thrustCurve"));
                 }
 
-                if (curveResource != "")
+                if (curveResource != string.Empty)
                 {
                     for (int i = 0; i < pCount; ++i)
                     {
@@ -210,6 +197,8 @@ namespace RealFuels
                         useThrustCurve = true;
                     }
                 }
+
+                Fields["thrustPercentage"].guiActive = Fields["thrustPercentage"].guiActiveEditor = (minFuelFlow != maxFuelFlow);
             }
 
             // Set from propellants
@@ -258,6 +247,11 @@ namespace RealFuels
             {
                 ullageSet.Load(node.GetNode("Ullage"));
             }
+            if (node.HasValue("pressureFed"))
+            {
+                bool.TryParse(node.GetValue("pressureFed"), out pressureFed);
+                Debug.Log(this.name + ".pressureFed = " + this.pressureFed);
+            }
             ullageSet.SetUllageEnabled(ullage);
 
             // load ignition resources
@@ -294,6 +288,7 @@ namespace RealFuels
 
             Fields["ignitions"].guiActive = Fields["ignitions"].guiActiveEditor = (ignitions >= 0 && RFSettings.Instance.limitedIgnitions);
             Fields["propellantStatus"].guiActive = Fields["propellantStatus"].guiActiveEditor = showPropStatus;
+            Fields[nameof(pressureFed)].guiActive = true;
 
             igniteFailIgnitions = new ScreenMessage("<color=orange>[" + part.partInfo.title + "]: no ignitions remaining!</color>", 5f, ScreenMessageStyle.UPPER_CENTER);
             igniteFailResources = new ScreenMessage("<color=orange>[" + part.partInfo.title + "]: insufficient resources to ignite!</color>", 5f, ScreenMessageStyle.UPPER_CENTER);
@@ -302,11 +297,12 @@ namespace RealFuels
         public override void OnStart(PartModule.StartState state)
         {
             base.OnStart(state);
-            
+
             Fields["thrustCurveDisplay"].guiActive = useThrustCurve && state != StartState.Editor;
         }
         bool needSetPropStatus = true;
         Color ullageColor = XKCDColors.White;
+
         public override void FixedUpdate()
         {
             if (HighLogic.LoadedSceneIsEditor)
@@ -330,7 +326,7 @@ namespace RealFuels
                 else if (ullage && RFSettings.Instance.simulateUllage)
                 {
                     propellantStatus = ullageSet.GetUllageState(out ullageColor);
-                    part.stackIcon.SetBackgroundColor(ullageColor);
+                    part.stackIcon.SetIconColor(ullageColor);
                 }
                 else
                     propellantStatus = "Nominal";
@@ -389,7 +385,7 @@ namespace RealFuels
 
             actualThrottle = (int)(currentThrottle * 100f);
         }
-        
+
         // from SolverEngines but we don't play FX here.
         public override void Activate()
         {
@@ -404,6 +400,7 @@ namespace RealFuels
             }
 
             EngineIgnited = true;
+            base.Activate();
 
             if (allowShutdown)
                 Events["Shutdown"].active = true;
@@ -439,7 +436,7 @@ namespace RealFuels
                 if (ullage && RFSettings.Instance.simulateUllage)
                 {
                     propellantStatus = ullageSet.GetUllageState(out ullageColor);
-                    part.stackIcon.SetBackgroundColor(ullageColor);
+                    part.stackIcon.SetIconColor(ullageColor);
                     if (EngineIgnited && ignited && throttledUp && rfSolver.GetRunning())
                     {
                         double state = ullageSet.GetUllageStability();
@@ -447,7 +444,7 @@ namespace RealFuels
                         if (UnityEngine.Random.value > testValue)
                         {
                             ScreenMessages.PostScreenMessage(ullageFail);
-                            FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] " + ullageFail.message);
+                            FlightLogger.fetch.LogEvent("[" + FormatTime(vessel.missionTime) + "] " + ullageFail.message);
                             reignitable = false;
                             ullageOK = false;
                             ignited = false;
@@ -483,7 +480,6 @@ namespace RealFuels
                         thrustCurveDisplay = thrustCurve.Evaluate(thrustCurveRatio);
                     }
                     rfSolver.UpdateThrustRatio(thrustCurveDisplay);
-                    thrustCurveDisplay *= 100f;
                 }
             }
 
@@ -491,7 +487,8 @@ namespace RealFuels
             rfSolver.SetPartTemp(part.temperature);
 
             // do heat
-            heatProduction = (float)(scaleRecip * extHeatkW / PhysicsGlobals.InternalHeatProductionFactor * part.thermalMassReciprocal);
+            // heatProduction = (float)(scaleRecip * extHeatkW / PhysicsGlobals.InternalHeatProductionFactor * part.thermalMassReciprocal);
+            heatProduction = 0;
 
             // run base method code
             base.UpdateSolver(ambientTherm, altitude, vel, mach, ignited, oxygen, CheckTransformsUnderwater());
@@ -511,41 +508,21 @@ namespace RealFuels
         #region Info
         protected string ThrottleString()
         {
-            string output = "";
-            if (!throttleLocked)
-            {
-                if (minThrottle > 0f && minThrottle < 1f)
-                    output += ", " + (minThrottle*100f).ToString("N0") + "% min throttle";
-                else if(minThrottle == 1f)
-                    output += ", unthrottleable";
-            }
-            else
-                output += ", throttle locked";
-
-            return output;
+            if (throttleLocked) { return ", throttle locked"; }
+            if (minThrottle == 1f) { return ", unthrottleable"; }
+            if (minThrottle < 0f || minThrottle > 1f) { return string.Empty; }
+            return ", " + (minThrottle * 100f).ToString("N0") + "% min throttle";
         }
         protected string GetThrustInfo()
         {
-            string output = "";
+            string output = string.Empty;
             if (engineSolver == null || !(engineSolver is SolverRF))
                 CreateEngine();
             rfSolver.SetPropellantStatus(true, true);
-            // get stats
-            double pressure = 101.325d, temperature = 288.15d, density = 1.225d;
-            if (Planetarium.fetch != null)
-            {
-                CelestialBody home = Planetarium.fetch.Home;
-                if (home != null)
-                {
-                    pressure = home.GetPressure(0d);
-                    temperature = home.GetTemperature(0d);
-                    density = home.GetDensity(pressure, temperature);
-                }
-            }
-            ambientTherm = new EngineThermodynamics();
-            ambientTherm.FromAmbientConditions(pressure, temperature, density);
-            inletTherm = new EngineThermodynamics();
-            inletTherm.CopyFrom(ambientTherm);
+
+            ambientTherm = EngineThermodynamics.StandardConditions(true);
+            inletTherm = ambientTherm;
+
             currentThrottle = 1f;
             lastPropellantFraction = 1d;
             bool oldE = EngineIgnited;
@@ -559,48 +536,66 @@ namespace RealFuels
             UpdateSolver(ambientTherm, 0d, Vector3d.zero, 0d, true, true, false);
             double thrustASL = (engineSolver.GetThrust() * 0.001d);
 
+            var weight = part.mass * (Planetarium.fetch?.Home?.GeeASL * 9.80665 ?? 9.80665);
+
             if (atmChangeFlow) // If it's a jet
             {
-                output += "<b>Static Thrust: </b>" + (thrustASL).ToString("0.0##") + " kN" + ThrottleString();
+                if (throttleLocked || minThrottle == 1f)
+                {
+                    output += String.Format("<b> Static Thrust: </b>{0} (TWR {1}), {2}\n", Utilities.FormatThrust(thrustASL), (thrustASL / weight).ToString("0.0##"), (throttleLocked ? "throttle locked" : "unthrottleable"));
+                }
+                else
+                {
+                    output += String.Format("{0}% min throttle\n", (minThrottle * 100f).ToString("N0"));
+                    output += String.Format("<b>Max. Static Thrust: </b>{0} (TWR {1})\n", Utilities.FormatThrust(thrustASL), (thrustASL / weight).ToString("0.0##"));
+                    output += String.Format("<b>Min. Static Thrust: </b>{0} (TWR {1})\n", Utilities.FormatThrust(thrustASL * minThrottle), (thrustASL * minThrottle / weight).ToString("0.0##"));
+                }
+
                 if (useVelCurve) // if thrust changes with mach
                 {
                     float vMin, vMax, tMin, tMax;
                     velCurve.FindMinMaxValue(out vMin, out vMax, out tMin, out tMax); // get the max mult, and thus report maximum thrust possible.
-                    output += "\n<b>Max. Thrust: </b>" + (thrustASL* vMax).ToString("0.0##") + " kN Mach " + tMax.ToString("0.#");
+                    output += String.Format("<b>Max. Thrust: </b>{0} at Mach {1} (TWR {2})\n", Utilities.FormatThrust(thrustASL * vMax), tMax.ToString("0.#"), (thrustASL * vMax / weight).ToString("0.0##"));
                 }
             }
             else
             {
                 // get stats again
-                double spaceHeight = 131000d;
-                pressure = 0d;
-                density = 0d;
-                if (Planetarium.fetch != null)
-                {
-                    CelestialBody home = Planetarium.fetch.Home;
-                    if (home != null)
-                    {
-                        temperature = home.GetTemperature(home.atmosphereDepth + 1d);
-                        spaceHeight = home.atmosphereDepth + 1000d;
-                    }
-                }
-                else
-                    temperature = PhysicsGlobals.SpaceTemperature;
-                ambientTherm.FromAmbientConditions(pressure, temperature, density);
+                ambientTherm = EngineThermodynamics.VacuumConditions(true);
+                double spaceHeight = Planetarium.fetch?.Home?.atmosphereDepth + 1000d ?? 141000d;
                 UpdateSolver(ambientTherm, spaceHeight, Vector3d.zero, 0d, true, true, false);
                 double thrustVac = (engineSolver.GetThrust() * 0.001d);
 
-                if (thrustASL != thrustVac)
+                if (throttleLocked || minThrottle == 1f)
                 {
-                    output += (throttleLocked ? "<b>" : "<b>Max. ") + "Thrust (Vac.): </b>" + (thrustVac).ToString("0.0##") + " kN" + ThrottleString()
-                        + "\n" + (throttleLocked ? "<b>" : "<b>Max. ") + "Thrust (ASL): </b>" + (thrustASL).ToString("0.0##") + " kN";
+                    var suffix = throttleLocked ? "throttle locked" : "unthrottleable";
+                    if (thrustASL != thrustVac)
+                    {
+                        output += String.Format("<b>Thrust (Vac): </b>{0} (TWR {1}), {2}\n", Utilities.FormatThrust(thrustVac), (thrustVac / weight).ToString("0.0##"), suffix);
+                        output += String.Format("<b>Thrust (ASL): </b>{0} (TWR {1}), {2}\n", Utilities.FormatThrust(thrustASL), (thrustASL / weight).ToString("0.0##"), suffix);
+                    }
+                    else
+                    {
+                        output += String.Format("<b>Thrust: </b>{0} (TWR {1}), {2}\n", Utilities.FormatThrust(thrustVac), (thrustVac / weight).ToString("0.0##"), suffix);
+                    }
                 }
                 else
                 {
-                    output += (throttleLocked ? "<b>" : "<b>Max. ") + "Thrust: </b>" + (thrustVac).ToString("0.0##") + " kN" + ThrottleString();
+                    output += String.Format("{0}% min throttle\n", (minThrottle * 100f).ToString("N0"));
+                    if (thrustASL != thrustVac)
+                    {
+                        output += String.Format("<b>Max. Thrust (Vac): </b>{0} (TWR {1})\n", Utilities.FormatThrust(thrustVac), (thrustVac / weight).ToString("0.0##"));
+                        output += String.Format("<b>Max. Thrust (ASL): </b>{0} (TWR {1})\n", Utilities.FormatThrust(thrustASL), (thrustASL / weight).ToString("0.0##"));
+                        output += String.Format("<b>Min. Thrust (Vac): </b>{0} (TWR {1})\n", Utilities.FormatThrust(thrustVac * minThrottle), (thrustVac * minThrottle / weight).ToString("0.0##"));
+                        output += String.Format("<b>Min. Thrust (ASL): </b>{0} (TWR {1})\n", Utilities.FormatThrust(thrustASL * minThrottle), (thrustASL * minThrottle / weight).ToString("0.0##"));
+                    }
+                    else
+                    {
+                        output += String.Format("<b>Max. Thrust: </b>{0} (TWR {1})\n", Utilities.FormatThrust(thrustVac), (thrustVac / weight).ToString("0.0##"));
+                        output += String.Format("<b>Min. Thrust: </b>{0} (TWR {1})\n", Utilities.FormatThrust(thrustVac * minThrottle), (thrustVac * minThrottle / weight).ToString("0.0##"));
+                    }
                 }
             }
-            output += "\n";
             EngineIgnited = oldE;
             ignited = oldIg;
             return output;
@@ -616,15 +611,12 @@ namespace RealFuels
         }
         public string GetUllageIgnition()
         {
-            string output = "";
+            string output = string.Empty;
             if (pressureFed)
                 output += "Pressure-fed";
-            if (ignitions >= 0 && RFSettings.Instance.limitedIgnitions)
-                output += (output != "" ? ", " : "") + "Ignitions: " + ignitions;
-            if (!ullage)
-                output += (output != "" ? ", " : "") + "Not subject to ullage";
-            if (output != "")
-                output += "\n";
+            output += (output != string.Empty ? ", " : string.Empty) + "Ignitions: " + ((!RFSettings.Instance.limitedIgnitions || ignitions < 0) ? "Unlimited" : (ignitions > 0 ? ignitions.ToString() : "Ground only"));
+            output += (output != string.Empty ? ", " : string.Empty) + (ullage ? "Subject" : "Not subject") + " to ullage";
+            output += "\n";
 
             return output;
         }
@@ -649,7 +641,7 @@ namespace RealFuels
                 if (p.name == "ElectricCharge")
                 {
                     units = "kW";
-                    rate = "";
+                    rate = string.Empty;
                 }
                 float unitsSec = getMaxFuelFlow(p);
                 string unitsUsed = unitsSec.ToString("N4") + units;
@@ -681,12 +673,14 @@ namespace RealFuels
             {
                 if (!ignited && reignitable)
                 {
+                    /* As long as you're on the pad, you can always ignite */
+                    bool externalIgnition = vessel.FindPartModulesImplementing<LaunchClamp>().Count > 0;
                     reignitable = false;
-                    if (ignitions == 0 && RFSettings.Instance.limitedIgnitions)
+                    if (ignitions == 0 && RFSettings.Instance.limitedIgnitions && !CheatOptions.InfinitePropellant && !externalIgnition)
                     {
                         EngineIgnited = false; // don't play shutdown FX, just fail.
                         ScreenMessages.PostScreenMessage(igniteFailIgnitions);
-                        FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] " + igniteFailIgnitions.message);
+                        FlightLogger.fetch.LogEvent("[" + FormatTime(vessel.missionTime) + "] " + igniteFailIgnitions.message);
                         Flameout("Ignition failed");
                         return;
                     }
@@ -718,11 +712,11 @@ namespace RealFuels
                                 }
                                 if (minResource < 1d)
                                 {
-                                    if (UnityEngine.Random.value > (float)minResource)
+                                    if (UnityEngine.Random.value > (float)minResource && !CheatOptions.InfinitePropellant && !externalIgnition)
                                     {
                                         EngineIgnited = false; // don't play shutdown FX, just fail.
                                         ScreenMessages.PostScreenMessage(igniteFailResources);
-                                        FlightLogger.eventLog.Add("[" + FormatTime(vessel.missionTime) + "] " + igniteFailResources.message);
+                                        FlightLogger.fetch.LogEvent("[" + FormatTime(vessel.missionTime) + "] " + igniteFailResources.message);
                                         Flameout("Ignition failed"); // yes play FX
                                         return;
                                     }

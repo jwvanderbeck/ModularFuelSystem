@@ -1,0 +1,23 @@
+{
+	"NAME": "RealFuels",
+	"URL": "https://raw.githubusercontent.com/NathanKell/ModularFuelSystem/master/RealFuels/RealFuels.version",
+	"VERSION":
+	{
+		"MAJOR": 12,
+		"MINOR": 8,
+		"PATCH": 5
+	},
+	"KSP_VERSION":
+	{
+		"MAJOR": 1,
+		"MINOR": 8,
+		"PATCH": 0
+	},
+	
+	"KSP_VERSION_MIN":
+	{
+		"MAJOR": 1,
+		"MINOR": 8,
+		"PATCH": 0
+	}
+}

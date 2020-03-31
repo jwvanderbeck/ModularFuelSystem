@@ -64,7 +64,12 @@ namespace RealFuels
             // Even if you don't lock down functionality, you should return true if your users
             // can expect a future update to be available.
             //
-            return Versioning.version_minor == 1 && Versioning.version_major == 1;
+			if (Versioning.version_major != 1
+				|| Versioning.version_minor != 8) {
+				return false;
+			}
+
+            return true;
 
             /*-----------------------------------------------*\
             | IMPLEMENTERS SHOULD NOT EDIT BEYOND THIS POINT! |
@@ -180,7 +185,7 @@ namespace RealFuels
 
             if ((incompatible.Length > 0) || (incompatibleUnity.Length > 0))
             {
-                PopupDialog.SpawnPopupDialog(new Vector2(0, 0), new Vector2(0, 0), "Incompatible Mods Detected", message, "OK", true, HighLogic.UISkin);
+                PopupDialog.SpawnPopupDialog(new Vector2(0, 0), new Vector2(0, 0), "CompatibilityChecker", "Incompatible Mods Detected", message, "OK", true, HighLogic.UISkin);
             }
         }
 

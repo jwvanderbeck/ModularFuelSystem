@@ -11,14 +11,13 @@ namespace RealFuels.Ullage
         List<UllageSet> ullageSets;
         List<Tanks.ModuleFuelTanks> tanks;
 
-        Vessel vessel;
         bool packed = true;
         int partCount = -1;
 
-        public void Start()
+        protected override void OnStart()
         {
-            vessel = GetComponent<Vessel>();
-            
+            base.OnStart();
+
             ullageSets = new List<UllageSet>();
             tanks = new List<Tanks.ModuleFuelTanks>();
             // will reset on first update
@@ -68,14 +67,7 @@ namespace RealFuels.Ullage
             // boiloff mass, for every engine (i.e. for every orientation)
             if (massRate > 0d)
             {
-                double vesselMass = 0d;
-                for (int i = vessel.Parts.Count - 1; i >= 0; --i)
-                {
-                    Part p = vessel.Parts[i];
-                    if (p.rb != null)
-                        vesselMass += p.rb.mass;
-                }
-                ventingAcceleration = RFSettings.Instance.ventingVelocity * massRate / vesselMass;
+                ventingAcceleration = RFSettings.Instance.ventingVelocity * massRate / vessel.totalMass;
             }
 
             // Update ullage sims
@@ -112,7 +104,7 @@ namespace RealFuels.Ullage
                     PartModule m = part.Modules[j];
                     if (m is Tanks.ModuleFuelTanks)
                     {
-                        Tanks.ModuleFuelTanks tank = m as Tanks.ModuleFuelTanks;
+                        Tanks.ModuleFuelTanks tank = (Tanks.ModuleFuelTanks)m;
                         if (!tanks.Contains(tank))
                             tanks.Add(tank);
                     }

@@ -3,7 +3,6 @@ using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Linq;
 using UnityEngine;
-using KSPAPIExtensions;
 
 namespace RealFuels
 {
@@ -34,6 +33,13 @@ namespace RealFuels
         public List<string> instantThrottleProps;
         public double throttlingRate = 10d;
         public double throttlingClamp = 1.1d;
+
+        public bool ferociousBoilOff = false;
+        public bool globalConductionCompensation = false;
+        public bool debugBoilOff = false;
+        public bool debugBoilOffPAW = true;
+        public double QvCoefficient = 0.0028466; // convective coefficient for Real Fuels MLI calculations
+        public double analyticInsulationMultiplier = 1;
 
         #region Ullage
         public bool simulateUllage = true;
@@ -98,8 +104,8 @@ namespace RealFuels
             }
 
             var asm = Assembly.GetCallingAssembly ();
-            var title = SystemUtils.GetAssemblyTitle (asm);
-            version = title + " " + SystemUtils.GetAssemblyVersionString (asm);
+            var title = MFSVersionReport.GetAssemblyTitle (asm);
+            version = title + " " + MFSVersionReport.GetAssemblyVersionString (asm);
 
             return version;
         }
@@ -141,6 +147,12 @@ namespace RealFuels
             node.TryGetValue("techLevelScienceEntryCostFraction", ref techLevelScienceEntryCostFraction);
             node.TryGetValue("configCostToScienceMultiplier", ref configCostToScienceMultiplier);
             node.TryGetValue("usePartNameInConfigUnlock", ref usePartNameInConfigUnlock);
+            node.TryGetValue("ferociousBoilOff", ref ferociousBoilOff);
+            node.TryGetValue("globalConductionCompensation", ref globalConductionCompensation);
+            node.TryGetValue("debugBoilOff", ref debugBoilOff);
+            node.TryGetValue("debugBoilOffPAW", ref debugBoilOffPAW);
+            node.TryGetValue("QvCoefficient", ref QvCoefficient);
+            node.TryGetValue("analyticInsulationMultiplier", ref analyticInsulationMultiplier);
 
             #region Ullage
             if (node.HasNode("Ullage"))
